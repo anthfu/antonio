@@ -57,9 +57,9 @@ object AntoNIO {
   }
 
   def read(channel: AsynchronousSocketChannel): Future[Array[Byte]] = {
-    val buffer = ByteBuffer.allocate(1024)
     val p = Promise[Array[Byte]]()
 
+    val buffer = ByteBuffer.allocate(1024)
     channel.read(buffer, null, new CompletionHandler[Integer, Void]() {
       override def completed(result: Integer, attachment: Void): Unit = {
         buffer.flip()
