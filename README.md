@@ -1,1 +1,3 @@
-# scala-nio-lab
+# AntoNIO
+
+A thin wrapper in Scala for Java NIO asynchronous channels.
