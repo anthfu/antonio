@@ -5,5 +5,7 @@ ThisBuild / scalaVersion := "2.13.6"
 lazy val antonio = (project in file("."))
   .settings(
     scalacOptions += "-target:11",
-    libraryDependencies ++= Seq.empty
+    libraryDependencies ++= Seq(
+      "org.scalameta" %% "munit" % "0.7.27" % Test
+    )
   )
