@@ -8,14 +8,15 @@ import scala.concurrent.ExecutionContext
 class AntoNIOSuite extends FunSuite {
   implicit val ec: ExecutionContext = ExecutionContext.global
 
-  test("Start server") {
+  test("Open a client channel to a server") {
     val server = serverChannel("localhost", 8080)
     assert(server.isOpen)
-  }
 
-  test("Start client") {
-    clientChannel("Localhost", 8080).map { channel =>
+    clientChannel("localhost", 8080).map { channel =>
       assert(channel.isOpen)
+      channel.close()
     }
+
+    server.close()
   }
 }
