@@ -3,10 +3,10 @@ package com.anthfu.nio
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.{AsynchronousChannelGroup, AsynchronousServerSocketChannel, AsynchronousSocketChannel, CompletionHandler}
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object AntoNIO {
-  def server(
+  def serverChannel(
     host: String,
     port: Int,
     channelGroup: Option[AsynchronousChannelGroup] = None
@@ -16,7 +16,7 @@ object AntoNIO {
     server
   }
 
-  def client(
+  def clientChannel(
     host: String,
     port: Int,
     channelGroup: Option[AsynchronousChannelGroup] = None
@@ -45,8 +45,8 @@ object AntoNIO {
     server.accept(
       null,
       new CompletionHandler[AsynchronousSocketChannel, Void]() {
-        override def completed(result: AsynchronousSocketChannel, attachment: Void): Unit =
-          p.success(result)
+        override def completed(channel: AsynchronousSocketChannel, attachment: Void): Unit =
+          p.success(channel)
 
         override def failed(e: Throwable, attachment: Void): Unit =
           p.failure(e)
@@ -60,15 +60,44 @@ object AntoNIO {
     val p = Promise[Array[Byte]]()
 
     val buffer = ByteBuffer.allocate(1024)
-    channel.read(buffer, null, new CompletionHandler[Integer, Void]() {
-      override def completed(result: Integer, attachment: Void): Unit = {
-        buffer.flip()
-        p.success(buffer.array())
-      }
+    channel.read(
+      buffer,
+      null,
+      new CompletionHandler[Integer, Void]() {
+        override def completed(bytesRead: Integer, attachment: Void): Unit = {
+          buffer.flip()
+          p.success(buffer.array())
+        }
 
-      override def failed(e: Throwable, attachment: Void): Unit =
-        p.failure(e)
-    })
+        override def failed(e: Throwable, attachment: Void): Unit =
+          p.failure(e)
+      }
+    )
+
+    p.future
+  }
+
+  def write(channel: AsynchronousSocketChannel, bytes: Array[Byte])(implicit ec: ExecutionContext): Future[Unit] = {
+    writeChunk(channel, bytes).flatMap { bytesWritten =>
+      if (bytesWritten == bytes.length) Future.successful(())
+      else write(channel, bytes.drop(bytesWritten))
+    }
+  }
+
+  private def writeChunk(channel: AsynchronousSocketChannel, bytes: Array[Byte]): Future[Integer] = {
+    val p = Promise[Integer]()
+
+    channel.write(
+      ByteBuffer.wrap(bytes),
+      null,
+      new CompletionHandler[Integer, Void]() {
+        override def completed(bytesWritten: Integer, attachment: Void): Unit =
+          p.success(bytesWritten)
+
+        override def failed(e: Throwable, attachment: Void): Unit =
+          p.failure(e)
+      }
+    )
 
     p.future
   }
