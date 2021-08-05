@@ -61,10 +61,17 @@ object AntoNIO extends LazyLogging {
     p.future
   }
 
-  def read(channel: AsynchronousSocketChannel): Future[Array[Byte]] = {
-    val p = Promise[Array[Byte]]()
-
+  def read(channel: AsynchronousSocketChannel, acc: Array[Byte] = Array.empty)(implicit ec: ExecutionContext): Future[Array[Byte]] = {
     logger.debug("Reading channel")
+    readChunk(channel).flatMap { case (bytesRead, bytes) =>
+      if (bytesRead < 0) Future.successful(acc)
+      else read(channel, acc ++ bytes)
+    }
+  }
+
+  private def readChunk(channel: AsynchronousSocketChannel): Future[(Integer, Array[Byte])] = {
+    val p = Promise[(Integer, Array[Byte])]()
+
     val buffer = ByteBuffer.allocate(1024)
     channel.read(
       buffer,
@@ -73,7 +80,7 @@ object AntoNIO extends LazyLogging {
         override def completed(bytesRead: Integer, attachment: Void): Unit = {
           logger.debug(s"Bytes read: $bytesRead")
           buffer.flip()
-          p.success(buffer.array())
+          p.success((bytesRead, buffer.array()))
         }
 
         override def failed(e: Throwable, attachment: Void): Unit =
@@ -87,7 +94,7 @@ object AntoNIO extends LazyLogging {
   def write(channel: AsynchronousSocketChannel, bytes: Array[Byte])(implicit ec: ExecutionContext): Future[Unit] = {
     logger.debug("Writing channel")
     writeChunk(channel, bytes).flatMap { bytesWritten =>
-      if (bytesWritten == bytes.length) Future.successful(())
+      if (bytesWritten == 0) Future.successful(())
       else write(channel, bytes.drop(bytesWritten))
     }
   }
@@ -96,7 +103,7 @@ object AntoNIO extends LazyLogging {
     val p = Promise[Integer]()
 
     channel.write(
-      ByteBuffer.wrap(bytes),
+      ByteBuffer.wrap(bytes, 0, Math.min(1024, bytes.length)),
       null,
       new CompletionHandler[Integer, Void]() {
         override def completed(bytesWritten: Integer, attachment: Void): Unit = {
