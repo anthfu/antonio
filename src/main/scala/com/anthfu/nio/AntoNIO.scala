@@ -1,16 +1,19 @@
 package com.anthfu.nio
 
+import com.typesafe.scalalogging.LazyLogging
+
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.{AsynchronousChannelGroup, AsynchronousServerSocketChannel, AsynchronousSocketChannel, CompletionHandler}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-object AntoNIO {
+object AntoNIO extends LazyLogging {
   def serverChannel(
     host: String,
     port: Int,
     channelGroup: Option[AsynchronousChannelGroup] = None
   ): AsynchronousServerSocketChannel = {
+    logger.debug("Opening server channel")
     val server = AsynchronousServerSocketChannel.open(channelGroup.orNull)
     server.bind(new InetSocketAddress(host, port))
     server
@@ -23,6 +26,7 @@ object AntoNIO {
   ): Future[AsynchronousSocketChannel] = {
     val p = Promise[AsynchronousSocketChannel]()
 
+    logger.debug("Opening client channel")
     val client = AsynchronousSocketChannel.open(channelGroup.orNull)
     client.connect(
       new InetSocketAddress(host, port),
@@ -42,6 +46,7 @@ object AntoNIO {
   def accept(server: AsynchronousServerSocketChannel): Future[AsynchronousSocketChannel] = {
     val p = Promise[AsynchronousSocketChannel]()
 
+    logger.debug("Accepting client channel")
     server.accept(
       null,
       new CompletionHandler[AsynchronousSocketChannel, Void]() {
@@ -59,12 +64,14 @@ object AntoNIO {
   def read(channel: AsynchronousSocketChannel): Future[Array[Byte]] = {
     val p = Promise[Array[Byte]]()
 
+    logger.debug("Reading channel")
     val buffer = ByteBuffer.allocate(1024)
     channel.read(
       buffer,
       null,
       new CompletionHandler[Integer, Void]() {
         override def completed(bytesRead: Integer, attachment: Void): Unit = {
+          logger.debug(s"Bytes read: $bytesRead")
           buffer.flip()
           p.success(buffer.array())
         }
@@ -78,6 +85,7 @@ object AntoNIO {
   }
 
   def write(channel: AsynchronousSocketChannel, bytes: Array[Byte])(implicit ec: ExecutionContext): Future[Unit] = {
+    logger.debug("Writing channel")
     writeChunk(channel, bytes).flatMap { bytesWritten =>
       if (bytesWritten == bytes.length) Future.successful(())
       else write(channel, bytes.drop(bytesWritten))
@@ -91,8 +99,10 @@ object AntoNIO {
       ByteBuffer.wrap(bytes),
       null,
       new CompletionHandler[Integer, Void]() {
-        override def completed(bytesWritten: Integer, attachment: Void): Unit =
+        override def completed(bytesWritten: Integer, attachment: Void): Unit = {
+          logger.debug(s"Bytes written: $bytesWritten")
           p.success(bytesWritten)
+        }
 
         override def failed(e: Throwable, attachment: Void): Unit =
           p.failure(e)

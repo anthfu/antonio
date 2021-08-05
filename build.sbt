@@ -6,6 +6,8 @@ lazy val antonio = (project in file("."))
   .settings(
     scalacOptions += "-target:11",
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "munit" % "0.7.27" % Test
+      "ch.qos.logback"              % "logback-classic" % "1.2.5",
+      "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.4",
+      "org.scalameta"              %% "munit"           % "0.7.27" % Test
     )
   )
