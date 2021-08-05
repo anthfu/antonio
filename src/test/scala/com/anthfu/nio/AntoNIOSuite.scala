@@ -26,12 +26,14 @@ class AntoNIOSuite extends FunSuite {
 
     Await.result(writeOp, Duration(5, TimeUnit.SECONDS)) // linearize writes and reads
 
-    for {
+    val readOp = for {
       channel <- accept(server)
       bytes   <- read(channel)
     } yield {
-      val res = new String(bytes, StandardCharsets.UTF_8)
-      assertEquals(res, message)
+      new String(bytes, StandardCharsets.UTF_8)
     }
+
+    val res = Await.result(readOp, Duration(5, TimeUnit.SECONDS))
+    assertEquals(res, message)
   }
 }
