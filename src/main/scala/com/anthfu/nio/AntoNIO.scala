@@ -1,6 +1,6 @@
 package com.anthfu.nio
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.StrictLogging
 
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
@@ -12,7 +12,7 @@ import java.nio.channels.{
 }
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-object AntoNIO extends LazyLogging {
+object AntoNIO extends StrictLogging {
   def serverChannel(
     host: String,
     port: Int,
