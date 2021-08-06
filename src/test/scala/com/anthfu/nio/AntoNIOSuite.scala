@@ -33,8 +33,8 @@ class AntoNIOSuite extends FunSuite {
       channel <- accept(server)
       bytes   <- read(channel)
     } yield {
-      new String(bytes, StandardCharsets.UTF_8)
-        .replaceAll("\u0000", "")
+      // Convert to string and discard NUL characters added by fixed-size buffer
+      new String(bytes, StandardCharsets.UTF_8).split("\u0000")(0)
     }
 
     val res = Await.result(readFut, Duration(5, TimeUnit.SECONDS))
