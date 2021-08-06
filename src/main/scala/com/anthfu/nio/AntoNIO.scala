@@ -78,8 +78,8 @@ object AntoNIO extends LazyLogging {
     }
   }
 
-  private def readChunk(channel: AsynchronousSocketChannel, chunkBytes: Int): Future[(Integer, Array[Byte])] = {
-    val p = Promise[(Integer, Array[Byte])]()
+  private def readChunk(channel: AsynchronousSocketChannel, chunkBytes: Int): Future[(Int, Array[Byte])] = {
+    val p = Promise[(Int, Array[Byte])]()
 
     val buffer = ByteBuffer.allocate(chunkBytes)
     channel.read(
@@ -112,8 +112,8 @@ object AntoNIO extends LazyLogging {
     }
   }
 
-  private def writeChunk(channel: AsynchronousSocketChannel, bytes: Array[Byte], chunkBytes: Int): Future[Integer] = {
-    val p = Promise[Integer]()
+  private def writeChunk(channel: AsynchronousSocketChannel, bytes: Array[Byte], chunkBytes: Int): Future[Int] = {
+    val p = Promise[Int]()
 
     channel.write(
       ByteBuffer.wrap(bytes, 0, Math.min(chunkBytes, bytes.length)),
