@@ -13,8 +13,7 @@ class AntoNIOSuite extends FunSuite {
   implicit val ec: ExecutionContext = ExecutionContext.global
 
   test("Send a message to the server") {
-    val message = Files.readString(
-      Path.of(getClass.getClassLoader.getResource("message.txt").toURI))
+    val message = Files.readString(Path.of(getClass.getClassLoader.getResource("message.txt").toURI))
 
     val host = "localhost"
     val port = 8080

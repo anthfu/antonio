@@ -112,11 +112,7 @@ object AntoNIO extends LazyLogging {
     }
   }
 
-  private def writeChunk(
-    channel: AsynchronousSocketChannel,
-    bytes: Array[Byte],
-    chunkBytes: Int
-  ): Future[Integer] = {
+  private def writeChunk(channel: AsynchronousSocketChannel, bytes: Array[Byte], chunkBytes: Int): Future[Integer] = {
     val p = Promise[Integer]()
 
     channel.write(
