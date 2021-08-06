@@ -4,7 +4,12 @@ import com.typesafe.scalalogging.LazyLogging
 
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import java.nio.channels.{AsynchronousChannelGroup, AsynchronousServerSocketChannel, AsynchronousSocketChannel, CompletionHandler}
+import java.nio.channels.{
+  AsynchronousChannelGroup,
+  AsynchronousServerSocketChannel,
+  AsynchronousSocketChannel,
+  CompletionHandler
+}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object AntoNIO extends LazyLogging {
@@ -61,18 +66,22 @@ object AntoNIO extends LazyLogging {
     p.future
   }
 
-  def read(channel: AsynchronousSocketChannel, acc: Array[Byte] = Array.empty)(implicit ec: ExecutionContext): Future[Array[Byte]] = {
+  def read(
+    channel: AsynchronousSocketChannel,
+    chunkBytes: Int = 1024,
+    acc: Array[Byte] = Array.empty
+  )(implicit ec: ExecutionContext): Future[Array[Byte]] = {
     logger.debug("Reading channel")
-    readChunk(channel).flatMap { case (bytesRead, bytes) =>
-      if (bytesRead < 0) Future.successful(acc)
-      else read(channel, acc ++ bytes)
+    readChunk(channel, chunkBytes).flatMap { case (bytesRead, bytes) =>
+      if (bytesRead < chunkBytes) Future.successful(acc ++ bytes)
+      else read(channel, chunkBytes, acc ++ bytes)
     }
   }
 
-  private def readChunk(channel: AsynchronousSocketChannel): Future[(Integer, Array[Byte])] = {
+  private def readChunk(channel: AsynchronousSocketChannel, chunkBytes: Int): Future[(Integer, Array[Byte])] = {
     val p = Promise[(Integer, Array[Byte])]()
 
-    val buffer = ByteBuffer.allocate(1024)
+    val buffer = ByteBuffer.allocate(chunkBytes)
     channel.read(
       buffer,
       null,
@@ -91,19 +100,27 @@ object AntoNIO extends LazyLogging {
     p.future
   }
 
-  def write(channel: AsynchronousSocketChannel, bytes: Array[Byte])(implicit ec: ExecutionContext): Future[Unit] = {
+  def write(
+    channel: AsynchronousSocketChannel,
+    bytes: Array[Byte],
+    chunkBytes: Int = 1024
+  )(implicit ec: ExecutionContext): Future[Unit] = {
     logger.debug("Writing channel")
-    writeChunk(channel, bytes).flatMap { bytesWritten =>
+    writeChunk(channel, bytes, chunkBytes).flatMap { bytesWritten =>
       if (bytesWritten == 0) Future.successful(())
       else write(channel, bytes.drop(bytesWritten))
     }
   }
 
-  private def writeChunk(channel: AsynchronousSocketChannel, bytes: Array[Byte]): Future[Integer] = {
+  private def writeChunk(
+    channel: AsynchronousSocketChannel,
+    bytes: Array[Byte],
+    chunkBytes: Int
+  ): Future[Integer] = {
     val p = Promise[Integer]()
 
     channel.write(
-      ByteBuffer.wrap(bytes, 0, Math.min(1024, bytes.length)),
+      ByteBuffer.wrap(bytes, 0, Math.min(chunkBytes, bytes.length)),
       null,
       new CompletionHandler[Integer, Void]() {
         override def completed(bytesWritten: Integer, attachment: Void): Unit = {

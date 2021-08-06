@@ -16,24 +16,28 @@ class AntoNIOSuite extends FunSuite {
     val message = Files.readString(
       Path.of(getClass.getClassLoader.getResource("message.txt").toURI))
 
-    val server = serverChannel("localhost", 8080)
+    val host = "localhost"
+    val port = 8080
+
+    val server = serverChannel(host, port)
     assert(server.isOpen)
 
-    val writeOp = clientChannel("localhost", 8080).flatMap { channel =>
+    val writeFut = clientChannel(host, port).flatMap { channel =>
       assert(channel.isOpen)
       write(channel, message.getBytes(StandardCharsets.UTF_8))
     }
 
-    Await.result(writeOp, Duration(5, TimeUnit.SECONDS)) // linearize writes and reads
+    Await.result(writeFut, Duration(5, TimeUnit.SECONDS)) // linearize writes and reads
 
-    val readOp = for {
+    val readFut = for {
       channel <- accept(server)
       bytes   <- read(channel)
     } yield {
       new String(bytes, StandardCharsets.UTF_8)
+        .replaceAll("\u0000", "")
     }
 
-    val res = Await.result(readOp, Duration(5, TimeUnit.SECONDS))
+    val res = Await.result(readFut, Duration(5, TimeUnit.SECONDS))
     assertEquals(res, message)
   }
 }
