@@ -1,3 +1,3 @@
 # AntoNIO
 
-A thin wrapper in Scala for Java NIO asynchronous channels intended for local experimentation.
+A Scala wrapper for Java NIO asynchronous channels intended for local experimentation.
