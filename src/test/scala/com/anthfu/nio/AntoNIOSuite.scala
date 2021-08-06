@@ -5,9 +5,7 @@ import munit.FunSuite
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.ExecutionContext
 
 class AntoNIOSuite extends FunSuite {
   implicit val ec: ExecutionContext = ExecutionContext.global
@@ -21,22 +19,18 @@ class AntoNIOSuite extends FunSuite {
     val server = serverChannel(host, port)
     assert(server.isOpen)
 
-    val writeFut = clientChannel(host, port).flatMap { channel =>
+    clientChannel(host, port).flatMap { channel =>
       assert(channel.isOpen)
       write(channel, message.getBytes(StandardCharsets.UTF_8))
     }
 
-    Await.result(writeFut, Duration(5, TimeUnit.SECONDS)) // linearize writes and reads
-
-    val readFut = for {
+    for {
       channel <- accept(server)
       bytes   <- read(channel)
     } yield {
       // Convert to string and discard NUL characters added by fixed-size buffer
-      new String(bytes, StandardCharsets.UTF_8).split("\u0000")(0)
+      val res = new String(bytes, StandardCharsets.UTF_8).split("\u0000")(0)
+      assertEquals(res, message)
     }
-
-    val res = Await.result(readFut, Duration(5, TimeUnit.SECONDS))
-    assertEquals(res, message)
   }
 }
