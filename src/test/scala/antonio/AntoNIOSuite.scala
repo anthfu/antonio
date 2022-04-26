@@ -1,6 +1,6 @@
-package com.anthfu.nio
+package antonio
 
-import com.anthfu.nio.AntoNIO._
+import antonio.AntoNIO._
 import munit.FunSuite
 
 import java.nio.charset.StandardCharsets
@@ -11,7 +11,12 @@ class AntoNIOSuite extends FunSuite {
   implicit val ec: ExecutionContext = ExecutionContext.global
 
   test("Send a message to the server") {
-    val message = Files.readString(Path.of(getClass.getClassLoader.getResource("message.txt").toURI))
+    val message = Files.readString(
+      Path.of(
+        getClass
+          .getClassLoader
+          .getResource("message.txt")
+          .toURI))
 
     val host = "localhost"
     val port = 8080
@@ -29,7 +34,9 @@ class AntoNIOSuite extends FunSuite {
       bytes   <- read(channel)
     } yield {
       // Convert to string and discard NUL characters added by fixed-size buffer
-      val res = new String(bytes, StandardCharsets.UTF_8).split("\u0000")(0)
+      val res = new String(bytes, StandardCharsets.UTF_8)
+        .split("\u0000")(0)
+
       assertEquals(res, message)
     }
   }

@@ -1,15 +1,10 @@
-package com.anthfu.nio
+package antonio
 
 import com.typesafe.scalalogging.StrictLogging
 
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import java.nio.channels.{
-  AsynchronousChannelGroup,
-  AsynchronousServerSocketChannel,
-  AsynchronousSocketChannel,
-  CompletionHandler
-}
+import java.nio.channels.{AsynchronousChannelGroup, AsynchronousServerSocketChannel, AsynchronousSocketChannel, CompletionHandler}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object AntoNIO extends StrictLogging {
@@ -48,14 +43,18 @@ object AntoNIO extends StrictLogging {
     p.future
   }
 
-  def accept(server: AsynchronousServerSocketChannel): Future[AsynchronousSocketChannel] = {
+  def accept(
+    server: AsynchronousServerSocketChannel
+  ): Future[AsynchronousSocketChannel] = {
     val p = Promise[AsynchronousSocketChannel]()
 
     logger.debug("Accepting client channel")
-    server.accept(
-      null,
+    server.accept(null,
       new CompletionHandler[AsynchronousSocketChannel, Void]() {
-        override def completed(channel: AsynchronousSocketChannel, attachment: Void): Unit =
+        override def completed(
+          channel: AsynchronousSocketChannel,
+          attachment: Void
+        ): Unit =
           p.success(channel)
 
         override def failed(e: Throwable, attachment: Void): Unit =
@@ -78,7 +77,10 @@ object AntoNIO extends StrictLogging {
     }
   }
 
-  private def readChunk(channel: AsynchronousSocketChannel, chunkBytes: Int): Future[(Int, Array[Byte])] = {
+  private def readChunk(
+    channel: AsynchronousSocketChannel,
+    chunkBytes: Int
+  ): Future[(Int, Array[Byte])] = {
     val p = Promise[(Int, Array[Byte])]()
 
     val buffer = ByteBuffer.allocate(chunkBytes)
@@ -86,10 +88,10 @@ object AntoNIO extends StrictLogging {
       buffer,
       null,
       new CompletionHandler[Integer, Void]() {
-        override def completed(bytesRead: Integer, attachment: Void): Unit = {
-          logger.debug(s"Bytes read: $bytesRead")
+        override def completed(bytes: Integer, attachment: Void): Unit = {
+          logger.debug(s"Bytes read: $bytes")
           buffer.flip()
-          p.success((bytesRead, buffer.array()))
+          p.success((bytes, buffer.array()))
         }
 
         override def failed(e: Throwable, attachment: Void): Unit =
@@ -112,16 +114,20 @@ object AntoNIO extends StrictLogging {
     }
   }
 
-  private def writeChunk(channel: AsynchronousSocketChannel, bytes: Array[Byte], chunkBytes: Int): Future[Int] = {
+  private def writeChunk(
+    channel: AsynchronousSocketChannel,
+    bytes: Array[Byte],
+    chunkBytes: Int
+  ): Future[Int] = {
     val p = Promise[Int]()
 
     channel.write(
       ByteBuffer.wrap(bytes, 0, Math.min(chunkBytes, bytes.length)),
       null,
       new CompletionHandler[Integer, Void]() {
-        override def completed(bytesWritten: Integer, attachment: Void): Unit = {
-          logger.debug(s"Bytes written: $bytesWritten")
-          p.success(bytesWritten)
+        override def completed(bytes: Integer, attachment: Void): Unit = {
+          logger.debug(s"Bytes written: $bytes")
+          p.success(bytes)
         }
 
         override def failed(e: Throwable, attachment: Void): Unit =
